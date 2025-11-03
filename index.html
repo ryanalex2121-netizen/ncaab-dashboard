@@ -572,7 +572,7 @@
                 const projectedTotal = game.projectedScore.team1 + game.projectedScore.team2;
                 
                 const spreadValue = Math.abs(projectedMargin - (game.marketLine.spread * -1));
-                const totalValue = Math.abs(projectedTotal - g.marketLine.total);
+                const totalValue = Math.abs(projectedTotal - game.marketLine.total);
                 const cardMaxValue = Math.max(spreadValue, totalValue);
 
                 const card = `
