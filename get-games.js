@@ -14,7 +14,8 @@ const year = today.getFullYear();
 const month = String(today.getMonth() + 1).padStart(2, '0');
 const day = String(today.getDate()).padStart(2, '0');
 const apiDate = `${year}-${month}-${day}`; // e.g., 2025-11-03
-const season = `${year}-${year + 1}`;     // e.g., 2025-2026
+// const season = `${year}-${year + 1}`;     // e.g., 2025-2026 // OLD
+const season = `${year}`; // e.g., 2025 --- Let's test if the API uses a single year for the season
 
 // API-Sports League ID for NCAAB is 886
 const SPREAD_URL = `https://${API_SPORTS_HOST}/odds?league=886&season=${season}&date=${apiDate}&bet=2`;
@@ -175,4 +176,5 @@ function mergeAPIData(aiData, apiSpreads, apiTotals) {
     
     return finalGameData;
 }
+
 
