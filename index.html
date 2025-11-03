@@ -59,7 +59,7 @@
 
     <header class="mb-6 max-w-7xl mx-auto">
         <h1 class="text-3xl md:text-4xl font-bold text-gray-900">AI vs. The Market</h1>
-        <p class="text-lg text-gray-600">NCAAB Daily Value Finder (Early Season)</p>
+        <p class="text-lg text-gray-600">NCAAB Daily Value Finder</p>
     </header>
 
     <nav id="filter-nav" class="flex justify-center space-x-2 mb-6 max-w-7xl mx-auto">
@@ -84,304 +84,76 @@
     </div>
 
     <script>
-        // --- API-SPORTS CONFIGURATION ---
-        const API_SPORTS_KEY = 'ec3f31e2a38fb91e324641e3a2a5c4c6'; 
-        const API_SPORTS_HOST = 'v1.basketball.api-sports.io';
-        
-        // --- GET TODAY'S DATE (YYYY-MM-DD format) ---
-        // This fulfills your request to have the games automatically feed in for each new day.
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const apiDate = `${year}-${month}-${day}`; // e.g., 2025-11-03
-
-        // API-Sports League ID for NCAAB is 886
-        // The URLs now dynamically use today's date (apiDate)
-        // We also removed bookmaker=8 to get all available odds.
-        const SPREAD_URL = `https://${API_SPORTS_HOST}/odds?league=886&season=2025-2026&date=${apiDate}&bet=2`;
-        const TOTAL_URL = `https://${API_SPORTS_HOST}/odds?league=886&season=2025-2026&date=${apiDate}&bet=5`;
-
-        // --- AI PROJECTIONS (Updated Structure) ---
-        // This is your proprietary AI data.
-        // This list now contains all 14 games from your original static data.
-        const aiProjections = [
-            {
-                id: 1,
-                team1: "Louisville", // Away Team
-                team2: "SC State",   // Home Team
-                projectedScore: { team1: 85, team2: 63 }, 
-                analysis: "This game has the largest value on the board. \n\nSpread Value: The AI projects a 22-point win, which is 13.5 points less than the 35.5-point spread. This strongly favors South Carolina State (+35.5). \n\nO/U Value: The projected total of 148 is also 9.5 points UNDER the 157.5 line."
-            },
-            {
-                id: 2,
-                team1: "Auburn",
-                team2: "Bethune-Cookman",
-                projectedScore: { team1: 90, team2: 57 },
-                analysis: "The AI sees significant value on the favorite.\n\nSpread Value: The projected 33-point win is 7.5 points more than the 25.5-point spread, strongly favoring Auburn (-25.5).\n\nO/U Value: The projected total of 147 is 4.5 points UNDER the 151.5 line."
-            },
-            {
-                id: 3,
-                team1: "Iowa State",
-                team2: "Fairleigh Dickinson",
-                projectedScore: { team1: 83, team2: 54 },
-                analysis: "The value here is on the total.\n\nO/U Value: The projected total of 137 is 7.5 points UNDER the 144.5 line.\n\nSpread Value: The 29-point projected win is only 1.5 points different from the 27.5-point spread, making it a 'sharp' line."
-            },
-            {
-                id: 4,
-                team1: "Furman",
-                team2: "Samford",
-                projectedScore: { team1: 79, team2: 74 },
-                analysis: "The AI identifies 5 points of value on the road favorite.\n\nSpread Value: Furman is projected to win by 5, but the line is -0.5 (a 'pick em'). This favors Furman (-0.5).\n\nO/U Value: The projected total of 153 is sharp against the 152.5 line."
-            },
-            {
-                id: 5,
-                team1: "Creighton",
-                team2: "North Florida",
-                projectedScore: { team1: 88, team2: 65 },
-                analysis: "AI finds 4.5 points of value on the total.\n\nO/U Value: The AI projection of 153 is 4.5 points UNDER the 157.5 line.\n\nSpread Value: The AI's 23-point win is very close to the -22.5 spread."
-            },
-            {
-                id: 6,
-                team1: "Marquette",
-                team2: "Radford",
-                projectedScore: { team1: 85, team2: 63 },
-                analysis: "The AI likes the underdog to cover this large spread.\n\nSpread Value: The AI projects a 22-point win, which is 4.5 points less than the 26.5 spread. This favors Radford (+26.5).\n\nO/U Value: The total is sharp (148 vs 148.5)."
-            },
-            {
-                id: 7,
-                team1: "Tennessee",
-                team2: "Murray State",
-                projectedScore: { team1: 80, team2: 60 },
-                analysis: "A very sharp line from the market.\n\nSpread Value: The AI projects a 20-point win, right on the -19.5 line.\n\nO/U Value: The AI projects 140 total points, right on the 140.5 line."
-            },
-            {
-                id: 8,
-                team1: "Illinois",
-                team2: "MVSU",
-                projectedScore: { team1: 92, team2: 55 },
-                analysis: "AI and market agree on this large spread.\n\nSpread Value: AI projects a 37-point win, vs. a -37.5 spread. Very sharp.\n\nO/U Value: AI's total of 147 is 4.5 points UNDER the 151.5 line."
-            },
-            {
-                id: 9,
-                team1: "UNC",
-                team2: "Elon",
-                projectedScore: { team1: 90, team2: 63 },
-                analysis: "Strong value on the under.\n\nO/U Value: The AI projects 153 total points, a full 6 points UNDER the 159.0 line.\n\nSpread Value: The 27-point projected win is very close to the -26.5 spread."
-            },
-            {
-                id: 10,
-                team1: "Baylor",
-                team2: "James Madison",
-                projectedScore: { team1: 82, team2: 75 },
-                analysis: "AI finds value on the underdog, James Madison.\n\nSpread Value: AI projects a 7-point win for Baylor, but the spread is -10.5. This 3.5-point difference favors James Madison (+10.5).\n\nO/U Value: The line is sharp (157 vs 157.5)."
-            },
-            {
-                id: 11,
-                team1: "UConn",
-                team2: "Northern Arizona",
-                projectedScore: { team1: 89, team2: 60 },
-                analysis: "AI sees 4.5 points of value on the total.\n\nO/U Value: The AI total of 149 is 4.5 points UNDER the 153.5 line.\n\nSpread Value: The projected 29-point win is very close to the -28.5 spread."
-            },
-            {
-                id: 12,
-                team1: "BYU",
-                team2: "San Diego St",
-                projectedScore: { team1: 72, team2: 68 },
-                analysis: "Classic AI vs. Market disagreement. The AI has BYU as a 4-point favorite, but the market has them as a 3-point underdog. This is a 7-point value discrepancy.\n\nSpread Value: AI strongly favors BYU (+3.0)."
-            },
-            {
-                id: 13,
-                team1: "Houston",
-                team2: "Lehigh",
-                projectedScore: { team1: 86, team2: 50 },
-                analysis: `This is the "sharpest" line of the day, according to the AI. The projected 36-point win and 136-point total are almost identical to the betting lines.`
-            },
-            {
-                id: 42,
-                team1: "Alabama",
-                team2: "North Dakota",
-                projectedScore: { team1: 100, team2: 68 },
-                analysis: "A sharp line on a high-scoring game. The AI's 32-point projected win is right on the -31.5 spread.\n\nThe projected total of 168 is also right on the 168.5 line."
-            }
-        ];
-
-        // --- MOCK API DATA ---
-        // This now contains all 14 corresponding games.
-        const MOCK_API_SPREADS = [
-            {
-                game: { id: 1001, teams: { away: { name: "Louisville" }, home: { name: "SC State" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-35.5", odd: "-110"}, { value: "+35.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1002, teams: { away: { name: "Auburn" }, home: { name: "Bethune-Cookman" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-25.5", odd: "-110"}, { value: "+25.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1003, teams: { away: { name: "Iowa State" }, home: { name: "Fairleigh Dickinson" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-27.5", odd: "-110"}, { value: "+27.5", odd: "-110"}] }] }]
-            },
-             {
-                game: { id: 1004, teams: { away: { name: "Houston" }, home: { name: "Lehigh" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-36.0", odd: "-110"}, { value: "+36.0", odd: "-110"}] }] }]
-            },
-             {
-                game: { id: 1005, teams: { away: { name: "Alabama" }, home: { name: "North Dakota" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-31.5", odd: "-110"}, { value: "+31.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1006, teams: { away: { name: "Furman" }, home: { name: "Samford" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-0.5", odd: "-110"}, { value: "+0.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1007, teams: { away: { name: "Creighton" }, home: { name: "North Florida" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-22.5", odd: "-110"}, { value: "+22.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1008, teams: { away: { name: "Marquette" }, home: { name: "Radford" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-26.5", odd: "-110"}, { value: "+26.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1009, teams: { away: { name: "Tennessee" }, home: { name: "Murray State" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-19.5", odd: "-110"}, { value: "+19.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1010, teams: { away: { name: "Illinois" }, home: { name: "MVSU" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-37.5", odd: "-110"}, { value: "+37.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1011, teams: { away: { name: "UNC" }, home: { name: "Elon" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-26.5", odd: "-110"}, { value: "+26.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1012, teams: { away: { name: "Baylor" }, home: { name: "James Madison" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-10.5", odd: "-110"}, { value: "+10.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1013, teams: { away: { name: "UConn" }, home: { name: "Northern Arizona" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "-28.5", odd: "-110"}, { value: "+28.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1014, teams: { away: { name: "BYU" }, home: { name: "San Diego St" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "+3.0", odd: "-110"}, { value: "-3.0", odd: "-110"}] }] }]
-            }
-        ];
-        
-        const MOCK_API_TOTALS = [
-             {
-                game: { id: 1001, teams: { away: { name: "Louisville" }, home: { name: "SC State" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 157.5", odd: "-110"}, { value: "Under 157.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1002, teams: { away: { name: "Auburn" }, home: { name: "Bethune-Cookman" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 151.5", odd: "-110"}, { value: "Under 151.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1003, teams: { away: { name: "Iowa State" }, home: { name: "Fairleigh Dickinson" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 144.5", odd: "-110"}, { value: "Under 144.5", odd: "-110"}] }] }]
-            },
-             {
-                game: { id: 1004, teams: { away: { name: "Houston" }, home: { name: "Lehigh" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 136.5", odd: "-110"}, { value: "Under 136.5", odd: "-110"}] }] }]
-            },
-             {
-                game: { id: 1005, teams: { away: { name: "Alabama" }, home: { name: "North Dakota" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 168.5", odd: "-110"}, { value: "Under 168.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1006, teams: { away: { name: "Furman" }, home: { name: "Samford" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 152.5", odd: "-110"}, { value: "Under 152.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1007, teams: { away: { name: "Creighton" }, home: { name: "North Florida" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 157.5", odd: "-110"}, { value: "Under 157.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1008, teams: { away: { name: "Marquette" }, home: { name: "Radford" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 148.5", odd: "-110"}, { value: "Under 148.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1009, teams: { away: { name: "Tennessee" }, home: { name: "Murray State" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 140.5", odd: "-110"}, { value: "Under 140.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1010, teams: { away: { name: "Illinois" }, home: { name: "MVSU" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 151.5", odd: "-110"}, { value: "Under 151.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1011, teams: { away: { name: "UNC" }, home: { name: "Elon" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 159.0", odd: "-110"}, { value: "Under 159.0", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1012, teams: { away: { name: "Baylor" }, home: { name: "James Madison" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 157.5", odd: "-110"}, { value: "Under 157.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1013, teams: { away: { name: "UConn" }, home: { name: "Northern Arizona" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 153.5", odd: "-110"}, { value: "Under 153.5", odd: "-110"}] }] }]
-            },
-            {
-                game: { id: 1014, teams: { away: { name: "BYU" }, home: { name: "San Diego St" } } },
-                bookmakers: [{ bets: [{ values: [{ value: "Over 141.5", odd: "-110"}, { value: "Under 141.5", odd: "-110"}] }] }]
-            }
-        ];
-        
+        // --- Global variables ---
         let activeFilter = 'all';
-        let gameData = []; // This will hold our merged data
+        let allMergedData = []; // This will hold the master list of merged data
 
         document.addEventListener('DOMContentLoaded', () => {
-            
-            // We call `loadData()` and pass it the *result* of our merge function.
-            // This simulates the full API lifecycle.
-            // const mergedData = mergeAPIData(aiProjections, MOCK_API_SPREADS, MOCK_API_TOTALS);
-            // loadData(mergedData); 
-            
-            // This is the live function. It is COMMENTED OUT to prevent CORS errors.
-            // When you move this to a server, you will comment out the two lines above
-            // and uncomment the line below.
-            
-            // --- ACTIVATED LIVE API CALL ---
-            // As requested, this will now attempt to fetch live data.
-            // This will likely fail due to CORS policy, which is expected.
-            fetchAndRenderLiveNCAABData();
+            // This is the main function call.
+            // It fetches from our serverless function, NOT API-Sports directly.
+            fetchDataAndRender(); 
             
             setupFilters();
             document.getElementById('close-modal-btn').addEventListener('click', hideModal);
         });
 
-        function loadData(dataToLoad) {
+        /**
+         * Fetches data from our own serverless endpoint,
+         * calculates value, and renders the cards.
+         */
+        async function fetchDataAndRender() {
             const grid = document.getElementById('game-grid');
-            if (!dataToLoad || dataToLoad.length === 0) {
-                 grid.innerHTML = `<p class="text-gray-400 col-span-full text-center">No game data found. This could be because no games matched between the AI model and the live market data.</p>`;
-                 return;
-            }
-            
-            gameData = dataToLoad.map(g => {
-                // Ensure marketLine exists before calculating values
-                if (!g.marketLine) {
-                    return { ...g, spreadValue: -Infinity, totalValue: -Infinity, maxValue: -Infinity, maxValueSource: 'N/A' };
+            grid.innerHTML = `<p class="text-gray-600 col-span-full text-center">Fetching live market data...</p>`;
+
+            try {
+                // Fetch from our own Vercel function
+                const response = await fetch('/api/get-games');
+                
+                if (!response.ok) {
+                    // Try to get the JSON error message from our serverless function
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Server error: ${response.status}`);
                 }
-                const projectedMargin = g.projectedScore.team1 - g.projectedScore.team2;
-                const projectedTotal = g.projectedScore.team1 + g.projectedScore.team2;
                 
-                // marketSpread is for team1 (Away). e.g., -35.5
-                // projectedMargin is for team1 (Away). e.g., 22
-                // Value = (AI_Margin - Market_Margin)
-                // Value = (22 - 35.5) = -13.5 (Favors Home Team)
-                const spreadValue = Math.abs(projectedMargin - (g.marketLine.spread * -1));
-                const totalValue = Math.abs(projectedTotal - g.marketLine.total);
-                
-                const maxValue = Math.max(spreadValue, totalValue);
-                const maxValueSource = maxValue === spreadValue ? 'Spread' : 'Total';
+                const mergedGameData = await response.json();
 
-                return {...g, spreadValue, totalValue, maxValue, maxValueSource};
-            });
-            
-            // Sort by max value by default and render
-            gameData.sort((a, b) => b.maxValue - a.maxValue);
-            renderGameCards(gameData);
+                if (!mergedGameData || mergedGameData.length === 0) {
+                     grid.innerHTML = `<p class="text-gray-400 col-span-full text-center">No matching games found. Your AI projections may be out of date. Check the Vercel logs to see today's game names.</p>`;
+                     return;
+                }
+                
+                // --- Step 2: Calculate Value ---
+                // We move the value calculation here, to the client-side
+                allMergedData = mergedGameData.map(g => {
+                    if (!g.marketLine) {
+                        return { ...g, spreadValue: -Infinity, totalValue: -Infinity, maxValue: -Infinity, maxValueSource: 'N/A' };
+                    }
+                    const projectedMargin = g.projectedScore.team1 - g.projectedScore.team2;
+                    const projectedTotal = g.projectedScore.team1 + g.projectedScore.team2;
+                    
+                    const spreadValue = Math.abs(projectedMargin - (g.marketLine.spread * -1));
+                    const totalValue = Math.abs(projectedTotal - g.marketLine.total);
+                    
+                    const maxValue = Math.max(spreadValue, totalValue);
+                    const maxValueSource = maxValue === spreadValue ? 'Spread' : 'Total';
+
+                    return {...g, spreadValue, totalValue, maxValue, maxValueSource};
+                });
+                
+                // --- Step 3: Render ---
+                sortAndRender(); // Initial render
+
+            } catch (error) {
+                console.error("Failed to fetch or render live data:", error);
+                // --- !! NEW ERROR DISPLAY !! ---
+                // This will now show the detailed error from the serverless function.
+                grid.innerHTML = `<p class="text-red-600 col-span-full text-center">
+                    <strong>Failed to load data:</strong> 
+                    <span class="block mt-2 font-mono text-sm">${error.message}</span>
+                </p>`;
+            }
         }
-
+        
         function setupFilters() {
             const filterNav = document.getElementById('filter-nav');
 
@@ -396,165 +168,40 @@
                     const filter = e.target.id.replace('-filter-btn', ''); // 'all', 'spread', 'total'
                     activeFilter = filter;
                     
-                    let sortedData = [...gameData]; // Use the global gameData
-                    
-                    if (activeFilter === 'spread') {
-                        sortedData.sort((a, b) => b.spreadValue - a.spreadValue);
-                    } else if (activeFilter === 'total') {
-                        sortedData.sort((a, b) => b.totalValue - a.totalValue);
-                    } else { // 'all'
-                        sortedData.sort((a, b) => b.maxValue - a.maxValue);
-                    }
-                    
-                    renderGameCards(sortedData);
+                    sortAndRender(); // Call the new sort/render function
                 }
             });
         }
 
         /**
-         * ==================================================================================
-         * NEW API FUNCTION
-         * ==================================================================================
-         * This function fetches live data from API-Sports and merges it with your
-         * local `aiProjections` data.
+         * New function to sort and render based on the active filter
          */
-        async function fetchAndRenderLiveNCAABData() {
-            const grid = document.getElementById('game-grid');
-            grid.innerHTML = `<p class="text-gray-600 col-span-full text-center">Fetching live market data...</p>`;
+        function sortAndRender() {
+            let sortedData = [...allMergedData]; // Use the global data
             
-            if (API_SPORTS_KEY === 'YOUR_API_SPORTS_KEY_HERE') {
-                grid.innerHTML = `<p class="text-red-600 col-span-full text-center"><strong>Error:</strong> Please add your API-Sports key to the script to fetch live data.</p>`;
-                return;
-            }
-
-            try {
-                // --- Step 1: Fetch Live Spread & Total Odds ---
-                // We must make two separate calls to get both market types
-                const apiHeaders = {
-                    "x-apisports-key": API_SPORTS_KEY,
-                    "x-apisports-host": API_SPORTS_HOST
-                };
-
-                const [spreadResponse, totalResponse] = await Promise.all([
-                    fetch(SPREAD_URL, { headers: apiHeaders }),
-                    fetch(TOTAL_URL, { headers: apiHeaders })
-                ]);
-
-                if (!spreadResponse.ok || !totalResponse.ok) {
-                    throw new Error(`API Error: ${spreadResponse.status} / ${totalResponse.status}`);
-                }
-
-                const spreadData = await spreadResponse.json();
-                const totalData = await totalResponse.json();
-
-                // Check for API errors in the response
-                if (spreadData.errors?.token || totalData.errors?.token) {
-                     throw new Error("API Key is invalid or not authorized for this request.");
-                }
-                if (!spreadData.response || !totalData.response) {
-                    throw new Error("Invalid data structure received from API-Sports.");
-                }
-                
-                console.log("API Spread Data:", spreadData.response);
-                console.log("API Total Data:", totalData.response);
-
-                // --- Step 2: Merge API Data with AI Projections ---
-                const mergedGameData = mergeAPIData(aiProjections, spreadData.response, totalData.response);
-
-                // --- Step 3: Render the data (this re-uses your existing functions) ---
-                // We now call `loadData` with our new, live, merged data
-                loadData(mergedGameData);
-
-            } catch (error) {
-                console.error("Failed to fetch or render live data:", error);
-                grid.innerHTML = `<p class="text-red-600 col-span-full text-center"><strong>Failed to load data:</strong> ${error.message}. This can happen if the free API limit is reached or due to CORS policy.</p>`;
-            }
-        }
-
-        /**
-         * This is the most important new function.
-         * It loops through your AI predictions and matches them with live market data.
-         */
-        function mergeAPIData(aiData, apiSpreads, apiTotals) {
-            const finalGameData = [];
-            console.log("Starting merge. AI Projections:", aiData.length, "API Spreads:", apiSpreads.length);
-
-            aiData.forEach(aiGame => {
-                // Find the matching game in the API results
-                // This logic checks if our AI's team names are present in the API's team names
-                const apiSpreadGame = apiSpreads.find(g => 
-                    g.game.teams.away.name.includes(aiGame.team1) &&
-                    g.game.teams.home.name.includes(aiGame.team2)
-                );
-                
-                // Find the matching total data using the game ID from the spread data
-                const apiTotalGame = apiTotals.find(g => g.game.id === apiSpreadGame?.game.id);
-
-                if (apiSpreadGame && apiTotalGame) {
-                    // We found a match! Now extract the market lines.
-                    
-                    // The API-Sports 'odds' endpoint returns an array of values.
-                    // For spreads, values[0] is for the away team (team1)
-                    // For totals, values[0] is "Over"
-                    const marketSpreadValue = apiSpreadGame.bookmakers[0].bets[0].values[0].value; // e.g., "-35.5"
-                    const marketTotalValue = apiTotalGame.bookmakers[0].bets[0].values[0].value; // e.g., "Over 157.5"
-
-                    if (marketSpreadValue && marketTotalValue) {
-                        // "value" for spread is like "-35.5"
-                        // "value" for total is like "Over 157.5"
-                        const marketSpread = parseFloat(marketSpreadValue); // e.g., -35.5
-                        const marketTotal = parseFloat(marketTotalValue.replace(/^(Over|Under)\s/i, "")); // e.g., 157.5
-
-                        // --- Calculate AI Picks based on live data ---
-                        const projectedMargin = aiGame.projectedScore.team1 - aiGame.projectedScore.team2; // e.g., 22 (Away - Home)
-                        const projectedTotal = aiGame.projectedScore.team1 + aiGame.projectedScore.team2; // e.g., 148
-                        
-                        // AI's projected margin (Away - Home) vs. Market's Away team spread
-                        // Example: LOU (22) @ SCST (-22). Market is LOU (-35.5) @ SCST (35.5)
-                        // AI projects LOU wins by 22. Market says LOU wins by 35.5.
-                        // AI's pick is SC State +35.5.
-                        // projectedMargin = 22. marketSpread = -35.5.
-                        // We check if AI margin (22) is greater than market spread (35.5)
-                        // (22 > 35.5) is false.
-                        const aiSpreadPick = projectedMargin > (marketSpread * -1)
-                            ? `${aiGame.team1} (${marketSpread})` // AI likes the Away team
-                            : `${aiGame.team2} (+${marketSpread * -1})`; // AI likes the Home team
-
-                        const aiTotalPick = projectedTotal > marketTotal
-                            ? `OVER ${marketTotal}`
-                            : `UNDER ${marketTotal}`;
-
-                        // --- Build the final object ---
-                        finalGameData.push({
-                            ...aiGame,
-                            game: `${aiGame.team1} @ ${aiGame.team2}`, // Recreate the game string for display
-                            marketLine: {
-                                spread: marketSpread,
-                                total: marketTotal
-                            },
-                            aiPicks: {
-                                spread: aiSpreadPick,
-                                total: aiTotalPick
-                            }
-                        });
-                    }
-                }
-            });
-
-            if(finalGameData.length === 0) {
-                console.warn("Data merge complete, but no matching games were found between your list and the API.");
+            if (activeFilter === 'spread') {
+                sortedData.sort((a, b) => b.spreadValue - a.spreadValue);
+            } else if (activeFilter === 'total') {
+                sortedData.sort((a, b) => b.totalValue - a.totalValue);
+            } else { // 'all'
+                sortedData.sort((a, b) => b.maxValue - a.maxValue);
             }
             
-            return finalGameData;
+            renderGameCards(sortedData);
         }
-
 
         function renderGameCards(games) {
             const grid = document.getElementById('game-grid');
             grid.innerHTML = ''; // Clear the grid first
 
             if (games.length === 0) {
-                grid.innerHTML = `<p class="text-gray-400 col-span-full text-center">No games match the current filter.</p>`;
+                 // This message is now more specific
+                if (allMergedData.length > 0) {
+                    grid.innerHTML = `<p class="text-gray-400 col-span-full text-center">No games match the current filter.</p>`;
+                } else {
+                    // This case should be handled by fetchDataAndRender, but as a fallback:
+                    grid.innerHTML = `<p class="text-gray-400 col-span-full text-center">No games found.</p>`;
+                }
                 return;
             }
 
@@ -616,7 +263,8 @@
         }
 
         function showModal(gameId) {
-            const game = gameData.find(g => g.id.toString() === gameId);
+            // This needs to find the game in the global data
+            const game = allMergedData.find(g => g.id.toString() === gameId);
             if (!game) return;
 
             document.getElementById('modal-title').textContent = `AI Analysis: ${game.game}`;
@@ -635,8 +283,4 @@
 
 </body>
 </html>
-
-
-
-
 
