@@ -4,740 +4,639 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI vs. The Market: NCAAB Value Finder</title>
-    <!-- Chosen Palette: Warm Neutral (BG: gray-50, Text: gray-900, Accent: blue-600) -->
-    <!-- Application Structure Plan: A dashboard-style SPA. The header introduces the concept of "value." Users can filter games by "All," "Top Spread Value," "Top Total Value," or "Sharp Lines." Each game is a card with two columns (Spread, Total) for direct comparison. Each column has a Chart.js "value bar" visualizing the gap between the market line and the AI projection. A "Details" button on each card opens a modal with the qualitative analysis. This structure is user-friendly, filterable, and visual, making the report's data far more explorable and digestible than a static list. -->
-    <!-- Visualization & Content Choices: [Report Data: Game lines, projections, analysis text. Goal: Compare AI projection vs. Market Line. Viz: Horizontal bar charts (Chart.js) in a `.chart-container`. Each chart shows two bars (Market, AI) to visually represent the "value gap" for both Spread and Total. Interaction: Filter buttons (JS) update the rendered cards. Clickable "Details" button (JS) on each card opens a modal to show the qualitative analysis. Justification: This card-based, visual-comparison-first approach is the most effective way to communicate the report's core concept ("value") and allow users to synthesize information at a glance. Library: Chart.js (Canvas) for all visualizations. -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Lighter gray background */
         }
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 120px;
-            max-height: 120px;
-            margin-left: auto;
-            margin-right: auto;
+        .header-bg {
+            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
         }
-
-        .filter-btn {
-            @apply px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all;
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
         }
-
-        .filter-btn.active {
-            @apply bg-blue-600 text-white border-blue-600 hover:bg-blue-700;
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.07), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
-        
-        .modal {
-            transition: opacity 0.25s ease, transform 0.25s ease;
+        .filter-nav button {
+            transition: all 0.2s ease;
+            color: #4b5563;
+            border: 1px solid #d1d5db;
         }
-        
-        .modal-content {
-            transition: transform 0.25s ease;
+        .filter-nav button.active,
+        .filter-nav button:hover {
+            color: #ffffff;
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+        .value-tag {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+        .value-spread {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .value-total {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        #modal-backdrop {
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900">
+<body class="p-4 md:p-8">
 
-    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
-        
-        <header class="text-center mb-8">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">AI vs. The Market</h1>
-            <p class="text-lg text-gray-600">NCAAB Opening Day Value Finder</p>
-            <p class="text-sm text-gray-500 mt-2">Last Updated: November 3, 2025 - 2:15 PM EST</p>
-            <p class="mt-4 text-base text-gray-700 max-w-3xl mx-auto">
-                This dashboard translates the "NCAAB Projections by Max Value" report into an interactive tool. It helps you find the biggest disagreements between AI-driven game simulations and the live betting market. Use the filters to discover where the AI sees the most value in either the point spread or the over/under total.
-            </p>
-        </header>
+    <header class="mb-6 max-w-7xl mx-auto">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-900">AI vs. The Market</h1>
+        <p class="text-lg text-gray-600">NCAAB Daily Value Finder (Early Season)</p>
+    </header>
 
-        <nav class="flex justify-center flex-wrap gap-2 mb-8" id="filter-nav">
-            <button class="filter-btn active" data-filter="all">All Games</button>
-            <button class="filter-btn" data-filter="spread">Top Spread Value</button>
-            <button class="filter-btn" data-filter="total">Top Total (O/U) Value</button>
-            <button class="filter-btn" data-filter="sharp">Sharp Lines</button>
-        </nav>
+    <nav id="filter-nav" class="flex justify-center space-x-2 mb-6 max-w-7xl mx-auto">
+        <button id="all-filter-btn" class="px-4 py-2 rounded-full font-medium text-sm active">All Max Value</button>
+        <button id="spread-filter-btn" class="px-4 py-2 rounded-full font-medium text-sm">Spread Value</button>
+        <button id="total-filter-btn" class="px-4 py-2 rounded-full font-medium text-sm">Total Value</button>
+    </nav>
 
-        <main id="game-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        </main>
+    <main id="game-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 max-w-7xl mx-auto">
+        <!-- Game cards will be injected here by JavaScript -->
+        <p class="text-gray-600 col-span-full text-center">Loading game data...</p>
+    </main>
 
-    </div>
-
-    <div id="details-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 hidden" onclick="hideModal()">
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative" onclick="event.stopPropagation()">
-            <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-            <h3 class="text-xl font-bold mb-4">Analytical Breakdown</h3>
-            <p id="modal-text" class="text-gray-700 whitespace-pre-line"></p>
-        </div>
+    <!-- Modal Structure -->
+    <div id="modal-backdrop" class="fixed inset-0 z-40 hidden" onclick="hideModal()"></div>
+    <div id="analysis-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-11/12 max-w-2xl bg-white rounded-lg shadow-2xl p-6 md:p-8 hidden">
+        <button id="close-modal-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600" onclick="hideModal()">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        <h3 id="modal-title" class="text-2xl font-bold text-gray-900 mb-4">AI Analysis</h3>
+        <p id="modal-text" class="text-gray-700 whitespace-pre-line"></p>
     </div>
 
     <script>
-        const gameData = [
+        // --- API-SPORTS CONFIGURATION ---
+        const API_SPORTS_KEY = 'ec3f31e2a38fb91e324641e3a2a5c4c6'; 
+        const API_SPORTS_HOST = 'v1.basketball.api-sports.io';
+        
+        // --- GET TODAY'S DATE (YYYY-MM-DD format) ---
+        // This fulfills your request to have the games automatically feed in for each new day.
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const apiDate = `${year}-${month}-${day}`; // e.g., 2025-11-03
+
+        // API-Sports League ID for NCAAB is 886
+        // The URLs now dynamically use today's date (apiDate)
+        // We also removed bookmaker=8 to get all available odds.
+        const SPREAD_URL = `https://${API_SPORTS_HOST}/odds?league=886&season=2025-2026&date=${apiDate}&bet=2`;
+        const TOTAL_URL = `https://${API_SPORTS_HOST}/odds?league=886&season=2025-2026&date=${apiDate}&bet=5`;
+
+        // --- AI PROJECTIONS (Updated Structure) ---
+        // This is your proprietary AI data.
+        // This list now contains all 14 games from your original static data.
+        const aiProjections = [
             {
                 id: 1,
-                game: "#11 Louisville vs. SC State",
-                time: "9:00 PM EST",
-                projectedScore: { team1: 85, team2: 63 },
-                marketLine: { spread: -35.5, total: 157.5 },
-                aiPicks: { spread: "South Carolina State (+35.5)", total: "UNDER 157.5" },
+                team1: "Louisville", // Away Team
+                team2: "SC State",   // Home Team
+                projectedScore: { team1: 85, team2: 63 }, 
                 analysis: "This game has the largest value on the board. \n\nSpread Value: The AI projects a 22-point win, which is 13.5 points less than the 35.5-point spread. This strongly favors South Carolina State (+35.5). \n\nO/U Value: The projected total of 148 is also 9.5 points UNDER the 157.5 line."
             },
             {
                 id: 2,
-                game: "#20 Auburn vs. Bethune-Cookman",
-                time: "8:00 PM EST",
+                team1: "Auburn",
+                team2: "Bethune-Cookman",
                 projectedScore: { team1: 90, team2: 57 },
-                marketLine: { spread: -25.5, total: 151.5 },
-                aiPicks: { spread: "Auburn (-25.5)", total: "UNDER 151.5" },
                 analysis: "The AI sees significant value on the favorite.\n\nSpread Value: The projected 33-point win is 7.5 points more than the 25.5-point spread, strongly favoring Auburn (-25.5).\n\nO/U Value: The projected total of 147 is 4.5 points UNDER the 151.5 line."
             },
             {
                 id: 3,
-                game: "#16 Iowa State vs. Fairleigh Dickinson",
-                time: "8:00 PM EST",
+                team1: "Iowa State",
+                team2: "Fairleigh Dickinson",
                 projectedScore: { team1: 83, team2: 54 },
-                marketLine: { spread: -27.5, total: 144.5 },
-                aiPicks: { spread: "Iowa State (-27.5)", total: "UNDER 144.5" },
                 analysis: "The value here is on the total.\n\nO/U Value: The projected total of 137 is 7.5 points UNDER the 144.5 line.\n\nSpread Value: The 29-point projected win is only 1.5 points different from the 27.5-point spread, making it a 'sharp' line."
             },
             {
-                id: 16,
-                game: "#3 Florida vs. #13 Arizona",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 79, team2: 77 },
-                marketLine: { spread: -3.5, total: 163.5 },
-                aiPicks: { spread: "Arizona (+3.5)", total: "UNDER 163.5" },
-                analysis: "This is the marquee game of the night, and the AI sees value.\n\nSpread Value: The projected 2-point win for Florida is 1.5 points inside the spread, favoring Arizona (+3.5).\n\nO/U Value: The biggest value is the total: the projected 156 points is 7.5 points UNDER the 163.5 line."
-            },
-            {
-                id: 21,
-                game: "High Point @ Furman",
-                time: "6:30 PM EST",
-                projectedScore: { team1: 76, team2: 71 },
-                marketLine: { spread: -3.5, total: 153.5 },
-                aiPicks: { spread: "High Point (-3.5)", total: "UNDER 153.5" },
-                analysis: "Models like the favorite. The projected 5-point win is 1.5 points clear of the -3.5 spread.\n\nThe biggest value is on the total: the projected 147 points is 6.5 points UNDER the 153.5 line."
-            },
-            {
                 id: 4,
-                game: "#17 Illinois vs. Jackson State",
-                time: "8:30 PM EST",
-                projectedScore: { team1: 88, team2: 64 },
-                marketLine: { spread: -29.5, total: 157.5 },
-                aiPicks: { spread: "Jackson State (+29.5)", total: "UNDER 157.5" },
-                analysis: "The models see equal value on both the underdog and the under.\n\nSpread Value: The projected 24-point win is 5.5 points less than the 29.5-point spread, favoring Jackson State (+29.5).\n\nO/U Value: The projected total of 152 is also 5.5 points UNDER the 157.5 line."
-            },
-            {
-                id: 34,
-                game: "Missouri vs. Howard",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 88, team2: 65 },
-                marketLine: { spread: -20.5, total: 158.5 },
-                aiPicks: { spread: "Missouri (-20.5)", total: "UNDER 158.5" },
-                analysis: "The AI sees value on both sides.\n\nSpread Value: The projected 23-point win is 2.5 points clear of the -20.5 spread, favoring Missouri (-20.5).\n\nO/U Value: The projected total of 153 is 5.5 points UNDER the 158.5 line."
+                team1: "Furman",
+                team2: "Samford",
+                projectedScore: { team1: 79, team2: 74 },
+                analysis: "The AI identifies 5 points of value on the road favorite.\n\nSpread Value: Furman is projected to win by 5, but the line is -0.5 (a 'pick em'). This favors Furman (-0.5).\n\nO/U Value: The projected total of 153 is sharp against the 152.5 line."
             },
             {
                 id: 5,
-                game: "South Alabama @ Toledo",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 75, team2: 72 },
-                marketLine: { spread: -2.5, total: 150.5 },
-                aiPicks: { spread: "South Alabama (+2.5)", total: "UNDER 150.5" },
-                analysis: "The AI is projecting a road upset.\n\nSpread Value: The projected 3-point win for South Alabama creates a 5.5-point difference from the line, strongly favoring South Alabama (+2.5).\n\nO/U Value: The projected total of 147 is 3.5 points UNDER the 150.5 line."
-            },
-            {
-                id: 15,
-                game: "Morgan State @ Georgetown",
-                time: "6:30 PM EST",
-                projectedScore: { team1: 85, team2: 65 },
-                marketLine: { spread: -24.5, total: 154.5 },
-                aiPicks: { spread: "Morgan State (+24.5)", total: "UNDER 154.5" },
-                analysis: "AI sees value on the underdog.\n\nSpread Value: The projected 20-point win is 4.5 points inside the 24.5-point spread, favoring Morgan State (+24.5).\n\nO/U Value: The projected total of 150 is 4.5 points UNDER the line."
-            },
-            {
-                id: 8,
-                game: "#7 Michigan vs. Oakland",
-                time: "8:30 PM EST",
-                projectedScore: { team1: 83, team2: 63 },
-                marketLine: { spread: -24.5, total: 149.5 },
-                aiPicks: { spread: "Oakland (+24.5)", total: "UNDER 149.5" },
-                analysis: "The models lean toward the in-state underdog.\n\nSpread Value: The projected 20-point win is 4.5 points less than the 24.5-point spread, favoring Oakland (+24.5).\n\nO/U Value: The projected total of 146 is 3.5 points UNDER the 149.5 line."
+                team1: "Creighton",
+                team2: "North Florida",
+                projectedScore: { team1: 88, team2: 65 },
+                analysis: "AI finds 4.5 points of value on the total.\n\nO/U Value: The AI projection of 153 is 4.5 points UNDER the 157.5 line.\n\nSpread Value: The AI's 23-point win is very close to the -22.5 spread."
             },
             {
                 id: 6,
-                game: "James Madison @ Akron",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 85, team2: 73 },
-                marketLine: { spread: -7.5, total: 153.5 },
-                aiPicks: { spread: "Akron (-7.5)", total: "OVER 153.5" },
-                analysis: "The models see value on both the favorite and the over.\n\nSpread Value: The projected 12-point win is 4.5 points more than the 7.5-point spread, favoring Akron (-7.5).\n\nO/U Value: The projected total of 158 is also 4.5 points OVER the 153.5 line."
-            },
-            {
-                id: 33,
-                game: "Texas St. @ Bowling Green",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 78, team2: 71 },
-                marketLine: { spread: -4.5, total: 144.5 },
-                aiPicks: { spread: "Bowling Green (-4.5)", total: "OVER 144.5" },
-                analysis: "The AI sees value on both the favorite and the total.\n\nSpread Value: The projected 7-point win is 2.5 points more than the -4.5 spread, favoring Bowling Green (-4.5).\n\nO/U Value: The projected total of 149 is 4.5 points OVER the 144.5 line."
-            },
-            {
-                id: 18,
-                game: "Northern Arizona @ Drake",
-                time: "4:00 PM EST",
-                projectedScore: { team1: 76, team2: 63 },
-                marketLine: { spread: -10.5, total: 143.5 },
-                aiPicks: { spread: "Drake (-10.5)", total: "UNDER 143.5" },
-                analysis: "Models favor the favorite and the under.\n\nSpread Value: The projected 13-point win gives 2.5 points of value on Drake (-10.5).\n\nO/U Value: The projected total of 139 is 4.5 points UNDER the 143.5 line."
+                team1: "Marquette",
+                team2: "Radford",
+                projectedScore: { team1: 85, team2: 63 },
+                analysis: "The AI likes the underdog to cover this large spread.\n\nSpread Value: The AI projects a 22-point win, which is 4.5 points less than the 26.5 spread. This favors Radford (+26.5).\n\nO/U Value: The total is sharp (148 vs 148.5)."
             },
             {
                 id: 7,
-                game: "#12 UCLA vs. Eastern Washington",
-                time: "10:30 PM EST",
-                projectedScore: { team1: 85, team2: 58 },
-                marketLine: { spread: -30.5, total: 147.5 },
-                aiPicks: { spread: "Eastern Washington (+30.5)", total: "UNDER 147.5" },
-                analysis: "The models lean toward the underdog and the under.\n\nO/U Value: The projected total of 143 is 4.5 points UNDER the 147.5 line.\n\nSpread Value: The projected 27-point win is 3.5 points less than the spread, favoring Eastern Washington (+30.5)."
+                team1: "Tennessee",
+                team2: "Murray State",
+                projectedScore: { team1: 80, team2: 60 },
+                analysis: "A very sharp line from the market.\n\nSpread Value: The AI projects a 20-point win, right on the -19.5 line.\n\nO/U Value: The AI projects 140 total points, right on the 140.5 line."
             },
             {
-                id: 25,
-                game: "IU Indy @ Ohio State",
-                time: "6:30 PM EST",
-                projectedScore: { team1: 93, team2: 65 },
-                marketLine: { spread: -27.5, total: 153.5 },
-                aiPicks: { spread: "Ohio State (-27.5)", total: "OVER 153.5" },
-                analysis: "The AI's 28-point projected win is right on the -27.5 spread.\n\nThe projected total of 158 is 4.5 points OVER the 153.5 line."
-            },
-            {
-                id: 10,
-                game: "Indiana State @ Charlotte",
-                time: "8:00 PM EST",
-                projectedScore: { team1: 77, team2: 76 },
-                marketLine: { spread: -2.5, total: 152.5 },
-                aiPicks: { spread: "Indiana State (+2.5)", total: "OVER 152.5" },
-                analysis: "The value is on the spread in this projected upset.\n\nSpread Value: The projected 1-point win for Indiana State is a 3.5-point difference from the line, favoring Indiana State (+2.5).\n\nO/U Value: The projected total of 153 is only 0.5 points off the line (No Value)."
-            },
-            {
-                id: 11,
-                game: "Samford @ Tulane",
-                time: "8:30 PM EST",
-                projectedScore: { team1: 78, team2: 75 },
-                marketLine: { spread: -6.5, total: 154.5 },
-                aiPicks: { spread: "Samford (+6.5)", total: "UNDER 154.5" },
-                analysis: "The AI expects a close game, giving value to the underdog.\n\nSpread Value: The projected 3-point win for Tulane is 3.5 points less than the spread, favoring Samford (+6.5).\n\nO/U Value: The projected total of 153 is 1.5 points off the line (No Value)."
-            },
-            {
-                id: 14,
-                game: "Coppin State @ Maryland",
-                time: "6:30 PM EST",
-                projectedScore: { team1: 86, team2: 57 },
-                marketLine: { spread: -28.5, total: 139.5 },
-                aiPicks: { spread: "Maryland (-28.5)", total: "OVER 139.5" },
-                analysis: "The AI projection for a 29-point win is almost identical to the -28.5 spread.\n\nThe projected total of 143, however, is 3.5 points OVER the 139.5 line."
-            },
-            {
-                id: 24,
-                game: "Quinnipiac @ #5 St. John's",
-                time: "6:30 PM EST",
-                projectedScore: { team1: 89, team2: 65 },
-                marketLine: { spread: -25.5, total: 157.5 },
-                aiPicks: { spread: "Quinnipiac (+25.5)", total: "UNDER 157.5" },
-                analysis: "The projected 24-point win is 1.5 points inside the 25.5-point spread, favoring Quinnipiac (+25.5).\n\nThe projected total of 154 is 3.5 points UNDER the 157.5 line."
+                id: 8,
+                team1: "Illinois",
+                team2: "MVSU",
+                projectedScore: { team1: 92, team2: 55 },
+                analysis: "AI and market agree on this large spread.\n\nSpread Value: AI projects a 37-point win, vs. a -37.5 spread. Very sharp.\n\nO/U Value: AI's total of 147 is 4.5 points UNDER the 151.5 line."
             },
             {
                 id: 9,
-                game: "#18 Tennessee vs. Mercer",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 87, team2: 60 },
-                marketLine: { spread: -27.5, total: 143.5 },
-                aiPicks: { spread: "Tennessee (-27.5)", total: "OVER 143.5" },
-                analysis: "The AI sees a sharp spread but some value on the total.\n\nThe 27-point projected win is only 0.5 points off the spread (No Value).\n\nThe projected total of 147 is 3.5 points OVER the 143.5 line."
+                team1: "UNC",
+                team2: "Elon",
+                projectedScore: { team1: 90, team2: 63 },
+                analysis: "Strong value on the under.\n\nO/U Value: The AI projects 153 total points, a full 6 points UNDER the 159.0 line.\n\nSpread Value: The 27-point projected win is very close to the -26.5 spread."
             },
             {
-                id: 43,
-                game: "#19 Kansas vs. Green Bay",
-                time: "8:00 PM EST",
-                projectedScore: { team1: 88, team2: 62 },
-                marketLine: { spread: -28.5, total: 151.5 },
-                aiPicks: { spread: "Green Bay (+28.5)", total: "UNDER 151.5" },
-                analysis: "The AI sees value on the underdog.\n\nSpread Value: The projected 26-point win is 2.5 points inside the 28.5-point spread, favoring Green Bay (+28.5).\n\nO/U Value: The projected total of 150 is 1.5 points under the line."
+                id: 10,
+                team1: "Baylor",
+                team2: "James Madison",
+                projectedScore: { team1: 82, team2: 75 },
+                analysis: "AI finds value on the underdog, James Madison.\n\nSpread Value: AI projects a 7-point win for Baylor, but the spread is -10.5. This 3.5-point difference favors James Madison (+10.5).\n\nO/U Value: The line is sharp (157 vs 157.5)."
             },
             {
-                id: 45,
-                game: "#21 Gonzaga vs. Texas Southern",
-                time: "9:00 PM EST",
-                projectedScore: { team1: 92, team2: 65 },
-                marketLine: { spread: -29.5, total: 157.5 },
-                aiPicks: { spread: "Texas Southern (+29.5)", total: "UNDER 157.5" },
-                analysis: "The AI favors the underdog to cover.\n\nSpread Value: The projected 27-point win is 2.5 points inside the 29.5-point spread, favoring Texas Southern (+29.5).\n\nO/U Value: The projected total of 157 is right on the line."
-            },
-            {
-                id: 27,
-                game: "#22 Michigan State vs. Colgate",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 82, team2: 64 },
-                marketLine: { spread: -20.5, total: 146.5 },
-                aiPicks: { spread: "Colgate (+20.5)", total: "UNDER 146.5" },
-                analysis: "The AI projects an 18-point win for MSU, which is 2.5 points inside the 20.5-point spread, favoring Colgate (+20.5).\n\nThe projected total of 146 is also just under the 146.5 line."
-            },
-            {
-                id: 30,
-                game: "Delaware @ Bucknell",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 79, team2: 75 },
-                marketLine: { spread: -1.5, total: 153.5 },
-                aiPicks: { spread: "Delaware (-1.5)", total: "OVER 153.5" },
-                analysis: "The AI sees value on the favorite.\n\nSpread Value: The projected 4-point win is 2.5 points more than the -1.5 spread, favoring Delaware (-1.5).\n\nO/U Value: The total is a perfect match."
-            },
-            {
-                id: 32,
-                game: "Troy @ Kent St.",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 75, team2: 69 },
-                marketLine: { spread: -3.5, total: 142.5 },
-                aiPicks: { spread: "Kent St. (-3.5)", total: "OVER 142.5" },
-                analysis: "The AI projects a 6-point win, 2.5 points more than the -3.5 spread, favoring Kent St. (-3.5).\n\nThe projected total of 144 is 1.5 points OVER the 142.5 line."
-            },
-            {
-                id: 40,
-                game: "Coastal Carolina @ Western Michigan",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 76, team2: 71 },
-                marketLine: { spread: -2.5, total: 146.5 },
-                aiPicks: { spread: "Western Michigan (-2.5)", total: "OVER 146.5" },
-                analysis: "The AI projects a 5-point win for the favorite, 2.5 points clear of the -2.5 spread.\n\nThe projected total of 147 is also very close to the 146.5 line."
-            },
-            {
-                id: 38,
-                game: "Marshall @ UMass",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 79, team2: 72 },
-                marketLine: { spread: -4.5, total: 150.5 },
-                aiPicks: { spread: "UMass (-4.5)", total: "OVER 150.5" },
-                analysis: "The AI favors the home team.\n\nSpread Value: The projected 7-point win is 2.5 points more than the -4.5 spread, favoring UMass (-4.5).\n\nO/U Value: The projected total of 151 is right on the 150.5 line."
-            },
-            {
-                id: 36,
-                game: "#14 Arkansas vs. Southern",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 89, team2: 62 },
-                marketLine: { spread: -24.5, total: 148.5 },
-                aiPicks: { spread: "Arkansas (-24.5)", total: "OVER 148.5" },
-                analysis: "The AI favors the Hogs.\n\nSpread Value: The projected 27-point win is 2.5 points more than the -24.5 spread, favoring Arkansas (-24.5).\n\nO/U Value: The projected total of 151 is also 2.5 points OVER the 148.5 line."
-            },
-            {
-                id: 26,
-                game: "Youngstown St. @ Pittsburgh",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 80, team2: 68 },
-                marketLine: { spread: -14.5, total: 148.5 },
-                aiPicks: { spread: "Youngstown St. (+14.5)", total: "UNDER 148.5" },
-                analysis: "The AI projects a 12-point win for Pitt, which is 2.5 points inside the 14.5-point spread, favoring Youngstown St. (+14.5).\n\nThe total of 148 is also very close to the 148.5 line."
-            },
-            {
-                id: 31,
-                game: "Appalachian St. @ Central Michigan",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 72, team2: 68 },
-                marketLine: { spread: -2.5, total: 138.5 },
-                aiPicks: { spread: "Appalachian St. (-2.5)", total: "OVER 138.5" },
-                analysis: "The AI projects a 4-point win, 1.5 points clear of the -2.5 spread, favoring the favorite.\n\nThe projected total of 140 is 1.5 points OVER the 138.5 line."
-            },
-            {
-                id: 39,
-                game: "Boston College @ Florida Atlantic",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 77, team2: 74 },
-                marketLine: { spread: -1.5, total: 149.5 },
-                aiPicks: { spread: "Florida Atlantic (-1.5)", total: "OVER 149.5" },
-                analysis: "AI agrees with the line, projecting a 3-point win, which is 1.5 points clear of the -1.5 spread.\n\nThe projected total of 151 is also 1.5 points OVER the 149.5 line."
-            },
-            {
-                id: 28,
-                game: "Wofford @ George Mason",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 78, team2: 62 },
-                marketLine: { spread: -14.5, total: 140.5 },
-                aiPicks: { spread: "George Mason (-14.5)", total: "UNDER 140.5" },
-                analysis: "The AI projects a 16-point win for the favorite, 1.5 points clear of the 14.5-point spread.\n\nThe projected total of 140 is perfectly in line with the 140.5 market total."
-            },
-            {
-                id: 29,
-                game: "Arkansas St. @ Ohio",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 83, team2: 78 },
-                marketLine: { spread: -3.5, total: 159.5 },
-                aiPicks: { spread: "Ohio (-3.5)", total: "OVER 159.5" },
-                analysis: "The AI's projected 5-point win is 1.5 points clear of the -3.5 spread.\n\nThe projected total of 161 is also 1.5 points OVER the 159.5 line. A sharp line on both."
-            },
-            {
-                id: 35,
-                game: "Louisiana @ Ball St.",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 74, team2: 70 },
-                marketLine: { spread: -2.5, total: 143.5 },
-                aiPicks: { spread: "Ball St. (-2.5)", total: "OVER 143.5" },
-                analysis: "The AI projects a 4-point win for the favorite, 1.5 points clear of the -2.5 spread.\n\nThe projected total of 144 is also very close to the 143.5 line."
-            },
-            {
-                id: 41,
-                game: "Old Dominion @ Miami (OH)",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 78, team2: 70 },
-                marketLine: { spread: -6.5, total: 147.5 },
-                aiPicks: { spread: "Miami (OH) (-6.5)", total: "OVER 147.5" },
-                analysis: "The AI projects an 8-point win, 1.5 points clear of the -6.5 spread.\n\nThe projected total of 148 is also very close to the 147.5 line."
-            },
-            {
-                id: 44,
-                game: "#24 Wisconsin vs. Campbell",
-                time: "8:00 PM EST",
-                projectedScore: { team1: 84, team2: 65 },
-                marketLine: { spread: -20.5, total: 150.5 },
-                aiPicks: { spread: "Campbell (+20.5)", total: "UNDER 150.5" },
-                analysis: "The AI projects a 19-point win, which is 1.5 points inside the 20.5-point spread, favoring Campbell (+20.5).\n\nThe projected total of 149 is 1.5 points under the 150.5 line."
-            },
-            {
-                id: 37,
-                game: "#25 UNC vs. Central Arkansas",
-                time: "7:00 PM EST",
-                projectedScore: { team1: 95, team2: 60 },
-                marketLine: { spread: -33.5, total: 155.5 },
-                aiPicks: { spread: "UNC (-33.5)", total: "UNDER 155.5" },
-                analysis: "A sharp line. The AI's 35-point projected win is 1.5 points clear of the -33.5 spread.\n\nThe projected total of 155 is also right on the 155.5 line."
+                id: 11,
+                team1: "UConn",
+                team2: "Northern Arizona",
+                projectedScore: { team1: 89, team2: 60 },
+                analysis: "AI sees 4.5 points of value on the total.\n\nO/U Value: The AI total of 149 is 4.5 points UNDER the 153.5 line.\n\nSpread Value: The projected 29-point win is very close to the -28.5 spread."
             },
             {
                 id: 12,
-                game: "Villanova @ #8 BYU",
-                time: "9:30 PM EST",
-                projectedScore: { team1: 80, team2: 71 },
-                marketLine: { spread: -8.5, total: 152.5 },
-                aiPicks: { spread: "BYU (-8.5)", total: "UNDER 152.5" },
-                analysis: "No significant value. The AI's 9-point projected win is only 0.5 points different from the spread.\n\nThe 151-point projected total is 1.5 points UNDER the 152.5 line."
+                team1: "BYU",
+                team2: "San Diego St",
+                projectedScore: { team1: 72, team2: 68 },
+                analysis: "Classic AI vs. Market disagreement. The AI has BYU as a 4-point favorite, but the market has them as a 3-point underdog. This is a 7-point value discrepancy.\n\nSpread Value: AI strongly favors BYU (+3.0)."
             },
             {
                 id: 13,
-                game: "#2 Houston vs. Lehigh",
-                time: "8:00 PM EST",
+                team1: "Houston",
+                team2: "Lehigh",
                 projectedScore: { team1: 86, team2: 50 },
-                marketLine: { spread: -35.5, total: 136.5 },
-                aiPicks: { spread: "Houston (-35.5)", total: "UNDER 136.5" },
                 analysis: `This is the "sharpest" line of the day, according to the AI. The projected 36-point win and 136-point total are almost identical to the betting lines.`
             },
             {
-                id: 23,
-                game: "Bradley @ St. Bonaventure",
-                time: "11:00 AM EST",
-                projectedScore: { team1: 71, team2: 68 },
-                marketLine: { spread: -1.5, total: 139.5 },
-                aiPicks: { spread: "Bradley (-1.5)", total: "UNDER 139.5" },
-                analysis: "A razor-thin game. The AI's 3-point win projection is very close to the 1.5-point spread, indicating a sharp line.\n\nThe projected total of 139 is also right on the market line."
-            },
-            {
-                id: 17,
-                game: "Omaha @ Murray State",
-                time: "1:30 PM EST",
-                projectedScore: { team1: 77, team2: 72 },
-                marketLine: { spread: -4.5, total: 149.5 },
-                aiPicks: { spread: "Murray State (-4.5)", total: "UNDER 149.5" },
-                analysis: "AI projection for a 5-point win is almost identical to the -4.5 spread.\n\nThe projected total of 149 is also just 0.5 points under the line. A very sharp line."
-            },
-            {
-                id: 20,
-                game: "Georgia St. @ Eastern Michigan",
-                time: "6:30 PM EST",
-                projectedScore: { team1: 72, team2: 76 },
-                marketLine: { spread: -3.5, total: 149.5 },
-                aiPicks: { spread: "Eastern Michigan (-3.5)", total: "UNDER 149.5" },
-                analysis: "The AI's 4-point win for the home team is right on the -3.5 spread.\n\nThe projected total of 148 is 1.5 points under the line, suggesting a sharp line overall."
-            },
-            {
-                id: 22,
-                game: "Southern Miss @ Buffalo",
-                time: "6:30 PM EST",
-                projectedScore: { team1: 77, team2: 75 },
-                marketLine: { spread: -2.5, total: 153.5 },
-                aiPicks: { spread: "Southern Miss (-2.5)", total: "UNDER 153.5" },
-                analysis: "A true coin-flip game. The AI's 2-point win for Southern Miss is right on the -2.5 spread.\n\nThe projected total of 152 is 1.5 points under the line. A very sharp line."
-            },
-            {
                 id: 42,
-                game: "#15 Alabama vs. North Dakota",
-                time: "8:00 PM EST",
+                team1: "Alabama",
+                team2: "North Dakota",
                 projectedScore: { team1: 100, team2: 68 },
-                marketLine: { spread: -31.5, total: 168.5 },
-                aiPicks: { spread: "Alabama (-31.5)", total: "UNDER 168.5" },
                 analysis: "A sharp line on a high-scoring game. The AI's 32-point projected win is right on the -31.5 spread.\n\nThe projected total of 168 is also right on the 168.5 line."
             }
         ];
 
+        // --- MOCK API DATA ---
+        // This now contains all 14 corresponding games.
+        const MOCK_API_SPREADS = [
+            {
+                game: { id: 1001, teams: { away: { name: "Louisville" }, home: { name: "SC State" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-35.5", odd: "-110"}, { value: "+35.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1002, teams: { away: { name: "Auburn" }, home: { name: "Bethune-Cookman" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-25.5", odd: "-110"}, { value: "+25.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1003, teams: { away: { name: "Iowa State" }, home: { name: "Fairleigh Dickinson" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-27.5", odd: "-110"}, { value: "+27.5", odd: "-110"}] }] }]
+            },
+             {
+                game: { id: 1004, teams: { away: { name: "Houston" }, home: { name: "Lehigh" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-36.0", odd: "-110"}, { value: "+36.0", odd: "-110"}] }] }]
+            },
+             {
+                game: { id: 1005, teams: { away: { name: "Alabama" }, home: { name: "North Dakota" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-31.5", odd: "-110"}, { value: "+31.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1006, teams: { away: { name: "Furman" }, home: { name: "Samford" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-0.5", odd: "-110"}, { value: "+0.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1007, teams: { away: { name: "Creighton" }, home: { name: "North Florida" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-22.5", odd: "-110"}, { value: "+22.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1008, teams: { away: { name: "Marquette" }, home: { name: "Radford" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-26.5", odd: "-110"}, { value: "+26.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1009, teams: { away: { name: "Tennessee" }, home: { name: "Murray State" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-19.5", odd: "-110"}, { value: "+19.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1010, teams: { away: { name: "Illinois" }, home: { name: "MVSU" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-37.5", odd: "-110"}, { value: "+37.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1011, teams: { away: { name: "UNC" }, home: { name: "Elon" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-26.5", odd: "-110"}, { value: "+26.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1012, teams: { away: { name: "Baylor" }, home: { name: "James Madison" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-10.5", odd: "-110"}, { value: "+10.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1013, teams: { away: { name: "UConn" }, home: { name: "Northern Arizona" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "-28.5", odd: "-110"}, { value: "+28.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1014, teams: { away: { name: "BYU" }, home: { name: "San Diego St" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "+3.0", odd: "-110"}, { value: "-3.0", odd: "-110"}] }] }]
+            }
+        ];
+        
+        const MOCK_API_TOTALS = [
+             {
+                game: { id: 1001, teams: { away: { name: "Louisville" }, home: { name: "SC State" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 157.5", odd: "-110"}, { value: "Under 157.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1002, teams: { away: { name: "Auburn" }, home: { name: "Bethune-Cookman" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 151.5", odd: "-110"}, { value: "Under 151.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1003, teams: { away: { name: "Iowa State" }, home: { name: "Fairleigh Dickinson" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 144.5", odd: "-110"}, { value: "Under 144.5", odd: "-110"}] }] }]
+            },
+             {
+                game: { id: 1004, teams: { away: { name: "Houston" }, home: { name: "Lehigh" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 136.5", odd: "-110"}, { value: "Under 136.5", odd: "-110"}] }] }]
+            },
+             {
+                game: { id: 1005, teams: { away: { name: "Alabama" }, home: { name: "North Dakota" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 168.5", odd: "-110"}, { value: "Under 168.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1006, teams: { away: { name: "Furman" }, home: { name: "Samford" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 152.5", odd: "-110"}, { value: "Under 152.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1007, teams: { away: { name: "Creighton" }, home: { name: "North Florida" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 157.5", odd: "-110"}, { value: "Under 157.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1008, teams: { away: { name: "Marquette" }, home: { name: "Radford" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 148.5", odd: "-110"}, { value: "Under 148.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1009, teams: { away: { name: "Tennessee" }, home: { name: "Murray State" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 140.5", odd: "-110"}, { value: "Under 140.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1010, teams: { away: { name: "Illinois" }, home: { name: "MVSU" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 151.5", odd: "-110"}, { value: "Under 151.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1011, teams: { away: { name: "UNC" }, home: { name: "Elon" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 159.0", odd: "-110"}, { value: "Under 159.0", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1012, teams: { away: { name: "Baylor" }, home: { name: "James Madison" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 157.5", odd: "-110"}, { value: "Under 157.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1013, teams: { away: { name: "UConn" }, home: { name: "Northern Arizona" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 153.5", odd: "-110"}, { value: "Under 153.5", odd: "-110"}] }] }]
+            },
+            {
+                game: { id: 1014, teams: { away: { name: "BYU" }, home: { name: "San Diego St" } } },
+                bookmakers: [{ bets: [{ values: [{ value: "Over 141.5", odd: "-110"}, { value: "Under 141.5", odd: "-110"}] }] }]
+            }
+        ];
+        
         let activeFilter = 'all';
-        let charts = [];
+        let gameData = []; // This will hold our merged data
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadData();
+            
+            // We call `loadData()` and pass it the *result* of our merge function.
+            // This simulates the full API lifecycle.
+            // const mergedData = mergeAPIData(aiProjections, MOCK_API_SPREADS, MOCK_API_TOTALS);
+            // loadData(mergedData); 
+            
+            // This is the live function. It is COMMENTED OUT to prevent CORS errors.
+            // When you move this to a server, you will comment out the two lines above
+            // and uncomment the line below.
+            
+            // --- ACTIVATED LIVE API CALL ---
+            // As requested, this will now attempt to fetch live data.
+            // This will likely fail due to CORS policy, which is expected.
+            fetchAndRenderLiveNCAABData();
+            
             setupFilters();
             document.getElementById('close-modal-btn').addEventListener('click', hideModal);
         });
 
-        function loadData() {
-            // In a real-world application, this is where you would make an API call
-            // to fetch the latest game data, e.g.:
-            // fetch('https://api.my-sports-data.com/ncaab-projections')
-            //     .then(response => response.json())
-            //     .then(data => {
-            //         gameData = data; // Overwrite the hard-coded data
-            //         renderGameCards(gameData);
-            //     });
+        function loadData(dataToLoad) {
+            const grid = document.getElementById('game-grid');
+            if (!dataToLoad || dataToLoad.length === 0) {
+                 grid.innerHTML = `<p class="text-gray-400 col-span-full text-center">No game data found. This could be because no games matched between the AI model and the live market data.</p>`;
+                 return;
+            }
             
-            // For this static demo, we'll sort by max value by default
-            let dataWithValues = gameData.map(g => {
+            gameData = dataToLoad.map(g => {
+                // Ensure marketLine exists before calculating values
+                if (!g.marketLine) {
+                    return { ...g, spreadValue: -Infinity, totalValue: -Infinity, maxValue: -Infinity, maxValueSource: 'N/A' };
+                }
                 const projectedMargin = g.projectedScore.team1 - g.projectedScore.team2;
                 const projectedTotal = g.projectedScore.team1 + g.projectedScore.team2;
+                
+                // marketSpread is for team1 (Away). e.g., -35.5
+                // projectedMargin is for team1 (Away). e.g., 22
+                // Value = (AI_Margin - Market_Margin)
+                // Value = (22 - 35.5) = -13.5 (Favors Home Team)
                 const spreadValue = Math.abs(projectedMargin - (g.marketLine.spread * -1));
                 const totalValue = Math.abs(projectedTotal - g.marketLine.total);
-                const maxValue = Math.max(spreadValue, totalValue);
-                let maxValueSource = 'Tied';
-                if (spreadValue > totalValue) maxValueSource = 'Spread';
-                else if (totalValue > spreadValue) maxValueSource = 'Total';
                 
+                const maxValue = Math.max(spreadValue, totalValue);
+                const maxValueSource = maxValue === spreadValue ? 'Spread' : 'Total';
+
                 return {...g, spreadValue, totalValue, maxValue, maxValueSource};
             });
             
-            const sortedData = dataWithValues.sort((a,b) => b.maxValue - a.maxValue);
-            renderGameCards(sortedData);
+            // Sort by max value by default and render
+            gameData.sort((a, b) => b.maxValue - a.maxValue);
+            renderGameCards(gameData);
         }
 
         function setupFilters() {
             const filterNav = document.getElementById('filter-nav');
+
             filterNav.addEventListener('click', (e) => {
                 if (e.target.tagName === 'BUTTON') {
-                    const filter = e.target.dataset.filter;
-                    if (filter === activeFilter) return;
-
-                    filterNav.querySelector('.active').classList.remove('active');
+                    // Update active styles
+                    if (filterNav.querySelector('button.active')) {
+                        filterNav.querySelector('button.active').classList.remove('active');
+                    }
                     e.target.classList.add('active');
+                    
+                    const filter = e.target.id.replace('-filter-btn', ''); // 'all', 'spread', 'total'
                     activeFilter = filter;
                     
-                    let dataWithValues = gameData.map(g => {
-                        const projectedMargin = g.projectedScore.team1 - g.projectedScore.team2;
-                        const projectedTotal = g.projectedScore.team1 + g.projectedScore.team2;
-                        const spreadValue = Math.abs(projectedMargin - (g.marketLine.spread * -1));
-                        const totalValue = Math.abs(projectedTotal - g.marketLine.total);
-                        const maxValue = Math.max(spreadValue, totalValue);
-                        let maxValueSource = 'Tied';
-                        if (spreadValue > totalValue) maxValueSource = 'Spread';
-                        else if (totalValue > spreadValue) maxValueSource = 'Total';
-                        
-                        return {...g, spreadValue, totalValue, maxValue, maxValueSource};
-                    });
-
-                    let filteredData = dataWithValues;
-                    if (filter === 'spread') {
-                        filteredData = dataWithValues.filter(g => g.maxValueSource === 'Spread' || g.maxValueSource === 'Tied').sort((a,b) => b.spreadValue - a.spreadValue);
-                    } else if (filter === 'total') {
-                        filteredData = dataWithValues.filter(g => g.maxValueSource === 'Total' || g.maxValueSource === 'Tied').sort((a,b) => b.totalValue - a.totalValue);
-                    } else if (filter === 'sharp') {
-                        filteredData = dataWithValues.filter(g => g.maxValue < 2).sort((a,b) => a.maxValue - b.maxValue);
-                    } else {
-                        filteredData = dataWithValues.sort((a,b) => b.maxValue - a.maxValue); 
+                    let sortedData = [...gameData]; // Use the global gameData
+                    
+                    if (activeFilter === 'spread') {
+                        sortedData.sort((a, b) => b.spreadValue - a.spreadValue);
+                    } else if (activeFilter === 'total') {
+                        sortedData.sort((a, b) => b.totalValue - a.totalValue);
+                    } else { // 'all'
+                        sortedData.sort((a, b) => b.maxValue - a.maxValue);
                     }
                     
-                    renderGameCards(filteredData);
+                    renderGameCards(sortedData);
                 }
             });
         }
 
+        /**
+         * ==================================================================================
+         * NEW API FUNCTION
+         * ==================================================================================
+         * This function fetches live data from API-Sports and merges it with your
+         * local `aiProjections` data.
+         */
+        async function fetchAndRenderLiveNCAABData() {
+            const grid = document.getElementById('game-grid');
+            grid.innerHTML = `<p class="text-gray-600 col-span-full text-center">Fetching live market data...</p>`;
+            
+            if (API_SPORTS_KEY === 'YOUR_API_SPORTS_KEY_HERE') {
+                grid.innerHTML = `<p class="text-red-600 col-span-full text-center"><strong>Error:</strong> Please add your API-Sports key to the script to fetch live data.</p>`;
+                return;
+            }
+
+            try {
+                // --- Step 1: Fetch Live Spread & Total Odds ---
+                // We must make two separate calls to get both market types
+                const apiHeaders = {
+                    "x-apisports-key": API_SPORTS_KEY,
+                    "x-apisports-host": API_SPORTS_HOST
+                };
+
+                const [spreadResponse, totalResponse] = await Promise.all([
+                    fetch(SPREAD_URL, { headers: apiHeaders }),
+                    fetch(TOTAL_URL, { headers: apiHeaders })
+                ]);
+
+                if (!spreadResponse.ok || !totalResponse.ok) {
+                    throw new Error(`API Error: ${spreadResponse.status} / ${totalResponse.status}`);
+                }
+
+                const spreadData = await spreadResponse.json();
+                const totalData = await totalResponse.json();
+
+                // Check for API errors in the response
+                if (spreadData.errors?.token || totalData.errors?.token) {
+                     throw new Error("API Key is invalid or not authorized for this request.");
+                }
+                if (!spreadData.response || !totalData.response) {
+                    throw new Error("Invalid data structure received from API-Sports.");
+                }
+                
+                console.log("API Spread Data:", spreadData.response);
+                console.log("API Total Data:", totalData.response);
+
+                // --- Step 2: Merge API Data with AI Projections ---
+                const mergedGameData = mergeAPIData(aiProjections, spreadData.response, totalData.response);
+
+                // --- Step 3: Render the data (this re-uses your existing functions) ---
+                // We now call `loadData` with our new, live, merged data
+                loadData(mergedGameData);
+
+            } catch (error) {
+                console.error("Failed to fetch or render live data:", error);
+                grid.innerHTML = `<p class="text-red-600 col-span-full text-center"><strong>Failed to load data:</strong> ${error.message}. This can happen if the free API limit is reached or due to CORS policy.</p>`;
+            }
+        }
+
+        /**
+         * This is the most important new function.
+         * It loops through your AI predictions and matches them with live market data.
+         */
+        function mergeAPIData(aiData, apiSpreads, apiTotals) {
+            const finalGameData = [];
+            console.log("Starting merge. AI Projections:", aiData.length, "API Spreads:", apiSpreads.length);
+
+            aiData.forEach(aiGame => {
+                // Find the matching game in the API results
+                // This logic checks if our AI's team names are present in the API's team names
+                const apiSpreadGame = apiSpreads.find(g => 
+                    g.game.teams.away.name.includes(aiGame.team1) &&
+                    g.game.teams.home.name.includes(aiGame.team2)
+                );
+                
+                // Find the matching total data using the game ID from the spread data
+                const apiTotalGame = apiTotals.find(g => g.game.id === apiSpreadGame?.game.id);
+
+                if (apiSpreadGame && apiTotalGame) {
+                    // We found a match! Now extract the market lines.
+                    
+                    // The API-Sports 'odds' endpoint returns an array of values.
+                    // For spreads, values[0] is for the away team (team1)
+                    // For totals, values[0] is "Over"
+                    const marketSpreadValue = apiSpreadGame.bookmakers[0].bets[0].values[0].value; // e.g., "-35.5"
+                    const marketTotalValue = apiTotalGame.bookmakers[0].bets[0].values[0].value; // e.g., "Over 157.5"
+
+                    if (marketSpreadValue && marketTotalValue) {
+                        // "value" for spread is like "-35.5"
+                        // "value" for total is like "Over 157.5"
+                        const marketSpread = parseFloat(marketSpreadValue); // e.g., -35.5
+                        const marketTotal = parseFloat(marketTotalValue.replace(/^(Over|Under)\s/i, "")); // e.g., 157.5
+
+                        // --- Calculate AI Picks based on live data ---
+                        const projectedMargin = aiGame.projectedScore.team1 - aiGame.projectedScore.team2; // e.g., 22 (Away - Home)
+                        const projectedTotal = aiGame.projectedScore.team1 + aiGame.projectedScore.team2; // e.g., 148
+                        
+                        // AI's projected margin (Away - Home) vs. Market's Away team spread
+                        // Example: LOU (22) @ SCST (-22). Market is LOU (-35.5) @ SCST (35.5)
+                        // AI projects LOU wins by 22. Market says LOU wins by 35.5.
+                        // AI's pick is SC State +35.5.
+                        // projectedMargin = 22. marketSpread = -35.5.
+                        // We check if AI margin (22) is greater than market spread (35.5)
+                        // (22 > 35.5) is false.
+                        const aiSpreadPick = projectedMargin > (marketSpread * -1)
+                            ? `${aiGame.team1} (${marketSpread})` // AI likes the Away team
+                            : `${aiGame.team2} (+${marketSpread * -1})`; // AI likes the Home team
+
+                        const aiTotalPick = projectedTotal > marketTotal
+                            ? `OVER ${marketTotal}`
+                            : `UNDER ${marketTotal}`;
+
+                        // --- Build the final object ---
+                        finalGameData.push({
+                            ...aiGame,
+                            game: `${aiGame.team1} @ ${aiGame.team2}`, // Recreate the game string for display
+                            marketLine: {
+                                spread: marketSpread,
+                                total: marketTotal
+                            },
+                            aiPicks: {
+                                spread: aiSpreadPick,
+                                total: aiTotalPick
+                            }
+                        });
+                    }
+                }
+            });
+
+            if(finalGameData.length === 0) {
+                console.warn("Data merge complete, but no matching games were found between your list and the API.");
+            }
+            
+            return finalGameData;
+        }
+
+
         function renderGameCards(games) {
             const grid = document.getElementById('game-grid');
-            grid.innerHTML = '';
-            charts.forEach(chart => chart.destroy());
-            charts = [];
+            grid.innerHTML = ''; // Clear the grid first
 
             if (games.length === 0) {
-                grid.innerHTML = `<p class="text-gray-600 col-span-full text-center">No games match the current filter.</p>`;
+                grid.innerHTML = `<p class="text-gray-400 col-span-full text-center">No games match the current filter.</p>`;
                 return;
             }
 
             games.forEach(game => {
-                const projectedMargin = game.projectedScore.team1 - game.projectedScore.team2;
-                const projectedTotal = game.projectedScore.team1 + game.projectedScore.team2;
+                const card = document.createElement('div');
+                card.className = 'card rounded-lg shadow-md overflow-hidden p-5 flex flex-col justify-between';
                 
-                const spreadValue = Math.abs(projectedMargin - (game.marketLine.spread * -1));
-                const totalValue = Math.abs(projectedTotal - game.marketLine.total);
-                const cardMaxValue = Math.max(spreadValue, totalValue);
-
-                const card = `
-                    <div class="bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200 flex flex-col">
-                        <div class="p-4 border-b border-gray-100">
-                            <div class="flex justify-between items-center mb-2">
-                                <h3 class="text-lg font-bold text-gray-900">${game.game}</h3>
-                                <span class="px-3 py-1 rounded-full text-xs font-semibold ${cardMaxValue >= 4.0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-700'}">
-                                    Max Value: ${cardMaxValue.toFixed(1)} pts
-                                </span>
-                            </div>
-                            <p class="text-sm text-gray-500">${game.time}</p>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 p-4 flex-grow">
-                            <div class="border-r pr-4 border-gray-200">
-                                <h4 class="font-semibold text-center mb-2 text-gray-700">Point Spread</h4>
-                                <div class="chart-container">
-                                    <canvas id="spread-chart-${game.id}"></canvas>
-                                </div>
-                                <div class="text-center text-sm mt-2">
-                                    <p>Market: ${game.marketLine.spread > 0 ? '+' : ''}${game.marketLine.spread}</p>
-                                    <p>AI Proj: ${projectedMargin > 0 ? '+' : ''}${projectedMargin.toFixed(0)}</p>
-                                </div>
-                                <div class="mt-3 p-2 rounded-md ${spreadValue >= 4.0 ? 'bg-blue-50' : 'bg-gray-50'}">
-                                    <p class="text-xs font-semibold text-center ${spreadValue >= 4.0 ? 'text-blue-800' : 'text-gray-700'}">
-                                        AI Pick: ${game.aiPicks.spread}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h4 class="font-semibold text-center mb-2 text-gray-700">Over/Under</h4>
-                                <div class="chart-container">
-                                    <canvas id="total-chart-${game.id}"></canvas>
-                                </div>
-                                <div class="text-center text-sm mt-2">
-                                    <p>Market: ${game.marketLine.total.toFixed(1)}</p>
-                                    <p>AI Proj: ${projectedTotal.toFixed(0)}</p>
-                                </div>
-                                <div class="mt-3 p-2 rounded-md ${totalValue >= 4.0 ? 'bg-blue-50' : 'bg-gray-50'}">
-                                    <p class="text-xs font-semibold text-center ${totalValue >= 4.0 ? 'text-blue-800' : 'text-gray-700'}">
-                                        AI Pick: ${game.aiPicks.total}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-4 bg-gray-50 border-t border-gray-100">
-                            <button class="w-full text-sm font-medium text-blue-600 hover:text-blue-800" data-analysis="${game.analysis.replace(/"/g, '&quot;')}">
-                                Show Analysis
-                            </button>
-                        </div>
-                    </div>
-                `;
-                grid.innerHTML += card;
-            });
-            
-            // This setTimeout ensures the DOM elements exist before we try to draw charts in them.
-            setTimeout(() => {
-                renderCharts(games);
-                setupModalButtons();
-            }, 100);
-        }
-
-        function renderCharts(games) {
-            games.forEach(game => {
-                const projectedMargin = game.projectedScore.team1 - game.projectedScore.team2;
-                const projectedTotal = game.projectedScore.team1 + game.projectedScore.team2;
-
-                const spreadCtxId = `spread-chart-${game.id}`;
-                const totalCtxId = `total-chart-${game.id}`;
-                
-                const spreadCtx = document.getElementById(spreadCtxId)?.getContext('2d');
-                const totalCtx = document.getElementById(totalCtxId)?.getContext('2d');
-
-                if (!spreadCtx || !totalCtx) {
-                    return;
+                let valueDisplay = '';
+                if (game.maxValueSource === 'Spread') {
+                    valueDisplay = `<span class="value-tag value-spread">SPREAD: ${game.spreadValue.toFixed(1)} PTS</span>`;
+                } else if (game.maxValueSource === 'Total') {
+                    valueDisplay = `<span class="value-tag value-total">TOTAL: ${game.totalValue.toFixed(1)} PTS</span>`;
+                } else {
+                     valueDisplay = `<span class="value-tag bg-gray-200 text-gray-700">No Value</span>`;
                 }
 
-                const marketSpread = game.marketLine.spread * -1;
-                const spreadValues = [marketSpread, projectedMargin];
-                const spreadMin = Math.min(...spreadValues) - 5;
-                const spreadMax = Math.max(...spreadValues) + 5;
+                card.innerHTML = `
+                    <div>
+                        <div class="flex justify-between items-start mb-3">
+                            <h2 class="text-xl font-semibold text-gray-800">${game.game}</h2>
+                            <div class="text-right flex-shrink-0 ml-2">
+                                ${valueDisplay}
+                            </div>
+                        </div>
 
-                const marketTotal = game.marketLine.total;
-                const totalValues = [marketTotal, projectedTotal];
-                const totalMin = Math.min(...totalValues) - 10;
-                const totalMax = Math.max(...totalValues) + 10;
-
-                const spreadData = {
-                    labels: ['Spread'],
-                    datasets: [
-                        { label: 'Market Line', data: [marketSpread], backgroundColor: '#9CA3AF' },
-                        { label: 'AI Projection', data: [projectedMargin], backgroundColor: '#3B82F6' }
-                    ]
-                };
-
-                const totalData = {
-                    labels: ['Total'],
-                    datasets: [
-                        { label: 'Market Line', data: [marketTotal], backgroundColor: '#9CA3AF' },
-                        { label: 'AI Projection', data: [projectedTotal], backgroundColor: '#3B82F6' }
-                    ]
-                };
-
-                const getChartOptions = (minVal, maxVal) => ({
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { 
-                            display: true, 
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                font: { size: 10 }
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.dataset.label}: ${context.raw.toFixed(1)}`;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { 
-                            beginAtZero: false, 
-                            ticks: { font: { size: 10 } },
-                            min: minVal,
-                            max: maxVal
-                        },
-                        y: { display: false }
-                    }
-                });
-
-                charts.push(new Chart(spreadCtx, { type: 'bar', data: spreadData, options: getChartOptions(spreadMin, spreadMax) }));
-                charts.push(new Chart(totalCtx, { type: 'bar', data: totalData, options: getChartOptions(totalMin, totalMax) }));
-            });
-        }
-        
-        function setupModalButtons() {
-            document.querySelectorAll('button[data-analysis]').forEach(button => {
-                button.addEventListener('click', () => {
-                    const analysisText = button.getAttribute('data-analysis');
-                    showModal(analysisText);
-                });
+                        <div class="mb-4 space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">AI Projection:</span>
+                                <span class="font-medium text-gray-900">${game.projectedScore.team1} - ${game.projectedScore.team2}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Market Spread:</span>
+                                <span class="font-medium text-gray-900">${game.marketLine.spread}</span>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-500">Market Total:</span>
+                                <span class="font-medium text-gray-900">${game.marketLine.total}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="border-t border-gray-200 pt-3 space-y-2">
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-500">AI Pick (Spread):</span>
+                                <span class="font-semibold text-blue-700">${game.aiPicks.spread}</span>
+                            </div>
+                            <div class="flex justify-between items-center text-sm">
+                                <span class="text-gray-500">AI Pick (Total):</span>
+                                <span class="font-semibold text-blue-700">${game.aiPicks.total}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full mt-4 px-4 py-2 bg-gray-100 text-gray-700 font-medium text-sm rounded-md hover:bg-gray-200 transition" onclick="showModal('${game.id}')">
+                        View AI Analysis
+                    </button>
+                `;
+                grid.appendChild(card);
             });
         }
 
-        function showModal(analysisText) {
-            const modal = document.getElementById('details-modal');
-            const modalText = document.getElementById('modal-text');
-            modalText.innerText = analysisText;
-            modal.classList.remove('hidden');
+        function showModal(gameId) {
+            const game = gameData.find(g => g.id.toString() === gameId);
+            if (!game) return;
+
+            document.getElementById('modal-title').textContent = `AI Analysis: ${game.game}`;
+            document.getElementById('modal-text').textContent = game.analysis;
+
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+            document.getElementById('analysis-modal').classList.remove('hidden');
         }
 
         function hideModal() {
-            const modal = document.getElementById('details-modal');
-            modal.classList.add('hidden');
+            document.getElementById('modal-backdrop').classList.add('hidden');
+            document.getElementById('analysis-modal').classList.add('hidden');
         }
 
     </script>
+
 </body>
 </html>
+
+
+
+
 
