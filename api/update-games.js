@@ -212,7 +212,7 @@ async function generateAndMergeData(apiGames) {
                             // This is the final, merged object to be saved
                             return {
                                 ...aiGame, // contains id, team1, team2, projectedScore, analysis
-                                game: `${aiGame.team1} @ ${aiGame.team2}`, 
+                                game: `${aiGame.team1} @ ${aiGame.tam2}`, 
                                 marketLine: {
                                     spread: marketSpread,
                                     total: marketTotal
@@ -229,7 +229,10 @@ async function generateAndMergeData(apiGames) {
                 })
         );
         
-        const results = await Promise.all(results);
+        // --- THIS IS THE FIX ---
+        // Was: const results = await Promise.all(results);
+        // Now: const results = await Promise.all(promises);
+        const results = await Promise.all(promises);
         finalGameData.push(...results.filter(game => game != null));
     }
     
