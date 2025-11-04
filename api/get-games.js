@@ -5,14 +5,15 @@
  * Its ONLY job is to read the pre-merged game data from the Vercel KV store.
  *
  * This version has been updated to use the `@vercel/kv` client
- * to resolve a persistent Vercel build error.
+ * and has the 'runtime: edge' config removed to fix a Vercel build error.
  */
 
 import { kv } from '@vercel/kv';
 
-export const config = {
-    runtime: 'edge', // We still prefer the Edge runtime
-};
+// !! CONFIG REMOVED !!
+// The "export const config = { runtime: 'edge' };" line was here.
+// Removing it forces Vercel to build this as a standard Node.js function,
+// which correctly installs the '@vercel/kv' dependency.
 
 export default async function handler(request) {
     try {
