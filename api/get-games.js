@@ -1,57 +1,38 @@
 /**
  * Vercel Serverless Function: api/get-games.js
- * * This function is called by the `index.html` page when a user loads it.
- * Its ONLY job is to read the pre-merged game data from the Vercel KV store
- * (which is populated by the `api/update-games.js` cron job).
- * * This function does NOT call any external sports APIs.
- * This function has NO dependencies and does not need `npm install`.
+ *
+ * This function is called by the `index.html` page when a user loads it.
+ * Its ONLY job is to read the pre-merged game data from the Vercel KV store.
+ *
+ * This version has been updated to use the `@vercel/kv` client
+ * to resolve a persistent Vercel build error.
  */
 
-// We are not using `@vercel/kv` to avoid install errors.
-// We will use the built-in `fetch` to talk to the KV store's REST API.
+import { kv } from '@vercel/kv';
 
 export const config = {
-    runtime: 'edge', // Use the fast Edge runtime
+    runtime: 'edge', // We still prefer the Edge runtime
 };
 
 export default async function handler(request) {
-    // Get the Vercel-provided Environment Variables
-    const KV_REST_API_URL = process.env.KV_REST_API_URL;
-    const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
-
-    if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
-        return new Response(
-            JSON.stringify({ error: 'KV store is not configured correctly. Check Environment Variables.' }),
-            {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            }
-        );
-    }
-
-    // Construct the URL to "get" our specific key
-    // The command is "get" and the key is "todays-games"
-    const url = `${KV_REST_API_URL}/get/todays-games`;
-
     try {
-        // --- 1. Fetch data from Vercel KV Store ---
-        const response = await fetch(url, {
-            headers: {
-                'Authorization': `Bearer ${KV_REST_API_TOKEN}`,
-            },
-        });
+        // --- 1. Fetch data from Vercel KV Store using the client ---
+        // 'todays-games' is the key we save to in update-games.js
+        const games = await kv.get('todays-games');
 
-        if (!response.ok) {
-            throw new Error(`KV Error: ${response.statusText}`);
-        }
+        if (!games || (Array.isArray(games) && games.length === 0)) {
+            // This is a valid case where the cron job ran but found no games
+            if (Array.isArray(games) && games.length === 0) {
+                return new Response(
+                    JSON.stringify([]), // Return an empty array
+                    {
+                        status: 200,
+                        headers: { 'Content-Type': 'application/json' },
+                    }
+                );
+            }
 
-        const data = await response.json();
-        
-        // `data.result` contains the JSON string we saved.
-        // We need to parse it one more time to get the actual array.
-        const games = JSON.parse(data.result);
-
-        if (!games || games.length === 0) {
+            // This case means the key truly doesn't exist
             return new Response(
                 JSON.stringify({ error: 'No game data is currently available. The cron job may not have run yet.' }),
                 {
@@ -67,7 +48,7 @@ export default async function handler(request) {
             JSON.stringify(games),
             {
                 status: 200,
-                headers: { 
+                headers: {
                     'Content-Type': 'application/json',
                     'Cache-Control': 's-maxage=60, stale-while-revalidate=600' // Cache for 1 min
                 },
@@ -77,18 +58,7 @@ export default async function handler(request) {
     } catch (error) {
         // Log the error for Vercel debugging
         console.error('Error fetching from KV:', error);
-        
-        // Check if the error is because the key doesn't exist yet
-        if (error.message.includes('Unexpected token \'n\'') || error.message.includes('invalid json')) {
-             return new Response(
-                JSON.stringify({ error: 'No game data found. Please run the /api/update-games cron job first.' }),
-                {
-                    status: 404, 
-                    headers: { 'Content-Type': 'application/json' },
-                }
-            );
-        }
-        
+
         return new Response(
             JSON.stringify({ error: `Server Error: ${error.message}` }),
             {
@@ -98,3 +68,4 @@ export default async function handler(request) {
         );
     }
 }
+
