@@ -5,12 +5,12 @@
     {
       "src": "api/get-games.js",
       "use": "@vercel/node",
-      "config": { "includeFiles": ["package.json"] }
+      "config": { "includeFiles": ["../package.json"] }
     },
     {
       "src": "api/update-games.js",
       "use": "@vercel/node",
-      "config": { "includeFiles": ["package.json"] }
+      "config": { "includeFiles": ["../package.json"] }
     }
   ],
   "crons": [
