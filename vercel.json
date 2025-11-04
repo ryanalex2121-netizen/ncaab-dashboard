@@ -1,12 +1,9 @@
 {
-  "functions": {
-    "api/get-games.js": {
-      "runtime": "nodejs18.x"
-    },
-    "api/update-games.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
+  "builds": [
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src":KA": "api/get-games.js", "use": "@vercel/node" },
+    { "src": "api/update-games.js", "use": "@vercel/node" }
+  ],
   "crons": [
     {
       "path": "/api/update-games",
