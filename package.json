@@ -3,7 +3,11 @@
   "version": "1.0.0",
   "description": "AI vs. The Market: NCAAB Value Finder",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@vercel/kv": "^1.0.1"
   }
 }
+
+
+
