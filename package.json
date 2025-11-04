@@ -1,6 +1,9 @@
 {
   "name": "ai-vs-market-app",
   "version": "1.0.0",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "build": "echo 'Build script running...'"
   },
