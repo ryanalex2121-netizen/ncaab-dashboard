@@ -3,6 +3,10 @@
     {
       "src": "api/update-games.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/get-games.js",
+      "use": "@vercel/edge"
     }
   ],
   "crons": [
