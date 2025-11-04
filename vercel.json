@@ -1,5 +1,4 @@
 {
-  "install": "npm install",
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     {
