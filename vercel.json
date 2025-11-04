@@ -1,4 +1,10 @@
 {
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
+    }
+  ],
   "crons": [
     {
       "path": "/api/update-games",
@@ -6,3 +12,4 @@
     }
   ]
 }
+
