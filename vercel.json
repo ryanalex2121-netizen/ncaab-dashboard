@@ -1,7 +1,7 @@
 {
   "builds": [
     {
-      "src": "api/*.js",
+      "src": "api/update-games.js",
       "use": "@vercel/node"
     }
   ],
@@ -12,4 +12,3 @@
     }
   ]
 }
-
