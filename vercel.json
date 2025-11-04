@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/update-games",
+      "schedule": "0 */4 * * *"
+    }
+  ]
+}
