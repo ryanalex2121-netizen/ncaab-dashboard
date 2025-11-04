@@ -1,12 +1,10 @@
 {
-  "functions": {
-    "api/get-games.js": {
-      "runtime": "edge"
-    },
-    "api/update-games.js": {
-      "runtime": "nodejs18.x"
+  "builds": [
+    {
+      "src": "api/*.js",
+      "use": "@vercel/node"
     }
-  },
+  ],
   "crons": [
     {
       "path": "/api/update-games",
