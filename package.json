@@ -4,9 +4,6 @@
   "engines": {
     "node": "20.x"
   },
-  "scripts": {
-    "build": "echo 'Build script running...'"
-  },
   "dependencies": {
     "@vercel/kv": "^1.0.1"
   }
