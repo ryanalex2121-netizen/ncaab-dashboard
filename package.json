@@ -1,7 +1,11 @@
 {
   "name": "ai-vs-market-app",
   "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Build script running...'"
+  },
   "dependencies": {
     "@vercel/kv": "^1.0.1"
   }
 }
+
