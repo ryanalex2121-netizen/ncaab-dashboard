@@ -1,8 +1,9 @@
 {
   "name": "ai-vs-market-app",
   "version": "1.0.0",
+  "private": true,
   "engines": {
-    "node": "20.x"
+    "node": "18.x"
   },
   "dependencies": {
     "@vercel/kv": "^1.0.1"
