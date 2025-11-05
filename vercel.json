@@ -1,17 +1,10 @@
 {
   "version": 2,
   "builds": [
+    { "src": "package.json", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
-    {
-      "src": "api/get-games.js",
-      "use": "@vercel/node",
-      "config": { "includeFiles": ["package.json", "package-lock.json"] }
-    },
-    {
-      "src": "api/update-games.js",
-      "use": "@vercel/node",
-      "config": { "includeFiles": ["package.json", "package-lock.json"] }
-    }
+    { "src": "api/get-games.js", "use": "@vercel/node" },
+    { "src": "api/update-games.js", "use": "@vercel/node" }
   ],
   "crons": [
     {
