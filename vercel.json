@@ -3,8 +3,14 @@
   "builds": [
     { "src": "index.html", "use": "@vercel/static" },
     {
-      "src": "api/*.js",
-      "use": "@vercel/node"
+      "src": "api/get-games.js",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["package.json", "package-lock.json"] }
+    },
+    {
+      "src": "api/update-games.js",
+      "use": "@vercel/node",
+      "config": { "includeFiles": ["package.json", "package-lock.json"] }
     }
   ],
   "crons": [
