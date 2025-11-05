@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "install": "npm install",
   "builds": [
+    { "src": "package.json", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
-    { "src": "api/*.js", "use": "@vercel/node" }
+    { "src": "api/get-games.js", "use": "@vercel/node" },
+    { "src": "api/update-games.js", "use": "@vercel/node" }
   ],
   "crons": [
     {
